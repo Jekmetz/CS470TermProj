@@ -6,6 +6,7 @@ Author: Jay Kmetz
 # LOCAL IMPORTS
 from pyobjs.Spaceship import Spaceship
 from pyobjs.Asteroid import Asteroid
+from pyobjs.Planet import Planet
 
 from utils.quat import *
 from utils.View import View
@@ -36,6 +37,8 @@ except ImportError:
 if not pinstalled:
     print("Please install the dependenc(y|ies) above using pip or a similar service. Thank you!")
     exit()
+
+import random
 
 
 # GLOBALS
@@ -214,6 +217,65 @@ def calc_view(env):
 
 
 def main():
+    # Locals
+    init_new_level = True
+    level_counter = 1
+
+    ship = None
+    planetd = None
+    asteroids = []
+    objs = []
+
+    def initialize_level():
+        nonlocal ship, planetd, asteroids, objs, level_counter, init_new_level
+
+        # reset vars
+        asteroids = []
+
+        # deregister all objects if registered
+        for obj in objs:
+            if obj.isstatic:
+                obj.obj.deregister()
+
+        objs = []
+
+        # Game generation tweaks
+        noise_max = 20
+        # planet
+        prho = random.uniform(200, 200 + level_counter * 100)
+        ptheta = random.random() * 2 * np.pi
+        pphi = random.random() * np.pi
+        ppos = (
+            prho * np.sin(pphi) * np.cos(ptheta),
+            prho * np.sin(pphi) * np.sin(ptheta),
+            prho * np.cos(pphi)
+        )
+
+        # asteroids
+        nasteroids = random.randrange(4, 4 + level_counter * 2)
+
+        ship = Spaceship()
+        planetd = Planet(pos=ppos)
+
+        objs.append(ship)
+        objs.append(planetd)
+
+        for i in range(nasteroids):
+            percent = random.uniform(.1, .9)
+            noise = (
+                noise_max * random.uniform(-1,1), # noisex
+                noise_max * random.uniform(-1,1), # noisey
+                noise_max * random.uniform(-1,1)  # noisez
+            )
+            apos = map(lambda a: a*percent, ppos) # get position from percentage along vector to planet
+            apos = tuple(map(sum,zip(apos, noise))) # add noise
+            tmpa = Asteroid(pos=apos)
+            asteroids.append(tmpa)
+            objs.append(tmpa)
+
+        init_new_level = False
+        level_counter += 1
+
     pygame.init()
     display = (1000, 700)
     pygame.display.set_mode(display, DOUBLEBUF | OPENGL | RESIZABLE)
@@ -231,16 +293,14 @@ def main():
     # glRotatef(90, 0, 1, 0)
     # glRotatef(10, 0, 0, 1)
 
-    # Specify objects
-    ship = Spaceship(pos=(0, 7, 5))
-    asteroid1 = Asteroid(pos=[-10, 0, -10], aa=(1,0,0,np.pi/4))
-    asteroid2 = Asteroid(pos=[30, -10, 10])
-    # cube3 = Cube(pos=[0, 5, 0])
-
     # pygame clock
     clock = pygame.time.Clock()
     x = 0
     while True:
+        # init level if needed
+        if init_new_level:
+            initialize_level()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -261,8 +321,13 @@ def main():
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         ship.render()
-        asteroid1.render()
-        asteroid2.render()
+        planetd.render()
+        for asteroid in asteroids:
+            asteroid.render()
+
+        ship2planet = tuple(map(lambda p: p[1]-p[0], zip(ship.pos,planetd.pos)))
+        ship2planet = tuple(map(lambda a: 8*a,normalize(ship2planet)))
+        draw_vec(ship2planet, p1=ship.pos, col=(1.0,1.0,1.0))
 
         calc_ambient()
 

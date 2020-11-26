@@ -14,6 +14,9 @@ from utils.util import *
 
 from pyobjs.ColObj import *
 
+# GLOBALS
+display_cache = None
+
 
 class Spaceship(ColObj):
     RACC = .001  # Rotation Acceleration
@@ -35,16 +38,25 @@ class Spaceship(ColObj):
     STEADY = "STEADY"
 
     def __init__(self, pos=(0, 0, 0), orient=(0, 1, 0, 0)):
-        super().__init__(pos)
+        global display_cache
+        super().__init__(pos, False)
+
         self.orient = orient
         self.rpy = [0, 0, 0]
         self.actions = [(Spaceship.STEADY), (Spaceship.STEADY), (Spaceship.STEADY)]
         self.force = (0, 0, 0)
         self.vel = (0, 0, 0)
         self.thrusting = 0
-        self.obj = DisplayObj()
-        self.obj.objFileImport("./wfobjs/spaceship")
+        if not display_cache:
+            self.obj = DisplayObj()
+            self.obj.objFileImport("./wfobjs/spaceship")
+            display_cache = self.obj
+        else:
+            self.obj = display_cache
         self.colr = 2 * self.obj.maxr / 3
+
+        if self.isstatic:
+            self.obj.register()
 
     def setRot(self, mode: int, d=RIGHT, up=0) -> None:
         if up == KP_UP:

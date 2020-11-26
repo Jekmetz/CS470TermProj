@@ -14,15 +14,26 @@ from utils.util import *
 from pyobjs.ColObj import *
 
 
+# GLOBALS
+display_cache = None
+
+
 class Asteroid(ColObj):
     def __init__(self, pos=(0, 0, 0), aa=(1, 0, 0, 0)):
-        #pos x, y, z
-        #rot pitch, yaw, roll
-        super().__init__(pos)
+        global display_cache
+        super().__init__(pos, True)
+
         self.quat = axisangle_to_q(aa[0:3], aa[3])
-        self.obj = DisplayObj()
-        self.obj.objFileImport("./wfobjs/asteroid")
+        if not display_cache:
+            self.obj = DisplayObj()
+            self.obj.objFileImport("./wfobjs/asteroid")
+            display_cache = self.obj
+        else:
+            self.obj = display_cache
         self.colr = 2 * self.obj.maxr / 3
+
+        if self.isstatic:
+            self.obj.register()
 
     def render(self):
         # glMatrixMode(GL_MODELVIEW)
