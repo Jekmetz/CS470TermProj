@@ -50,14 +50,23 @@ class View:
             py = self.posoff[1]
             px, pz = (self.orbitr * np.cos(self.th), self.orbitr * np.sin(self.th))
             px, py, pz = qv_mult(s_quat, (px,py,pz))
-            self.th = (self.th + np.pi/30) % (2*np.pi)
+            self.th = (self.th + np.pi/60) % (2*np.pi)
 
             ux, uy, uz = qv_mult(s_quat, self.upvec)
+
             gluLookAt(
                 shipx + px, shipy + py, shipz + pz,
                 shipx, shipy, shipz,
                 ux, uy, uz
             )
+
+    def get_position(self):
+        if self.type in (View.VT_SHIP_RELATIVE, View.VT_STATIC):
+            return self.posoff
+        elif self.type == View.VT_ORBIT:
+            py = self.posoff[1]
+            px, pz = (self.orbitr * np.cos(self.th), self.orbitr * np.sin(self.th))
+            return px,py,pz
 
     def set_static_view(self, s_pos, s_quat, v_pos, v_up):
         self.st_pos = tuple(map(sum,zip(s_pos,qv_mult(s_quat, v_pos))))

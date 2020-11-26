@@ -12,8 +12,10 @@ from utils.quat import *
 from utils.DisplayObj import DisplayObj
 from utils.util import *
 
+from pyobjs.ColObj import *
 
-class Spaceship:
+
+class Spaceship(ColObj):
     RACC = .001  # Rotation Acceleration
     RMAX = .1  # Rotation Max
     RIGHT = 1  # Rotate Right
@@ -33,7 +35,7 @@ class Spaceship:
     STEADY = "STEADY"
 
     def __init__(self, pos=(0, 0, 0), orient=(0, 1, 0, 0)):
-        self.pos = pos
+        super().__init__(pos)
         self.orient = orient
         self.rpy = [0, 0, 0]
         self.actions = [(Spaceship.STEADY), (Spaceship.STEADY), (Spaceship.STEADY)]
@@ -42,6 +44,7 @@ class Spaceship:
         self.thrusting = 0
         self.obj = DisplayObj()
         self.obj.objFileImport("./wfobjs/spaceship")
+        self.colr = 2 * self.obj.maxr / 3
 
     def setRot(self, mode: int, d=RIGHT, up=0) -> None:
         if up == KP_UP:
@@ -179,7 +182,7 @@ class Spaceship:
         self.applyThrust()
 
         # Cube.draw_cube()  # eventually draw ship
-
+        # self.draw_collision_sphere() # collision sphere
         self.obj.drawObj()
 
         glPopMatrix()

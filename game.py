@@ -148,7 +148,7 @@ def handleKeyEvent(env, event):
     def vs(up):
         global CURVIEW
         if not up:
-            v_pos = U_VIEWS[CURVIEW].posoff
+            v_pos = U_VIEWS[CURVIEW].get_position()
             v_up = U_VIEWS[CURVIEW].upvec
             U_VIEWS[V_STATIC].set_static_view(ship.pos, ship.orient,v_pos,v_up)
             CURVIEW = V_STATIC

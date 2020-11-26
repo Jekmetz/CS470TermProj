@@ -1,17 +1,19 @@
 import os
-import re
+import numpy as np
 from OpenGL.GL import *
 
 
 class DisplayObj:
-    def __init__(self, verts=None, norms=None, edges=None, surfs=None, cols=None, name=None, mats=None):
+    def __init__(self, verts=None, norms=None, edges=None, surfs=None, cols=None, nam=None, mats=None):
         self.verts = verts
         self.norms = norms
         self.edges = edges
         self.surfs = surfs
         self.cols = cols
-        self.name = name
+        self.name = nam
         self.mats = None
+        self.maxr = 0
+        self.scale = 1.0
 
     def objFileImport(self, objName):
         # Init vars
@@ -47,7 +49,11 @@ class DisplayObj:
                 elif cmd == "o": # object name
                     self.name = args[1]
                 elif cmd == "v": # vertex
-                    self.verts.append((float(args[1]),float(args[2]),float(args[3])))
+                    vert = (float(args[1]),float(args[2]),float(args[3]))
+                    self.verts.append(vert)
+                    sum_squares = sum(map(lambda a: a*a, vert))
+                    if self.maxr < sum_squares:
+                        self.maxr = sum_squares
                 elif cmd == "vn": # vertex normal
                     self.norms.append((float(args[1]),float(args[2]),float(args[3])))
                 elif cmd == "usemtl": # use material
@@ -57,6 +63,7 @@ class DisplayObj:
                     if self.mats and curmat: # if we have a material to load...
                         self.cols.append(curmat)
                 line = fp.readline()
+            self.maxr = np.sqrt(self.maxr)
 
     def loadMats(self, fname):
         # Init vars
@@ -112,6 +119,7 @@ class DisplayObj:
         self.surfs.append((tuple(vertlist),norm))
 
     def drawObj(self):
+        glScalef(self.scale, self.scale, self.scale)
         for col, surface_norm in zip(self.cols, self.surfs):
             mat = self.mats[col] or Material()
             glMaterialfv(GL_FRONT, GL_AMBIENT, mat.amb)
@@ -131,6 +139,7 @@ class DisplayObj:
             for vertex in surface:
                 glVertex3fv(self.verts[vertex])
             glEnd()
+        glScalef(1.0,1.0,1.0)
 
         # glBegin(GL_LINES)
         # glColor3fv((0.0, 0.0, 0.0))

@@ -11,16 +11,18 @@ from OpenGL.GL import *
 from utils.quat import *
 from utils.DisplayObj import DisplayObj
 from utils.util import *
+from pyobjs.ColObj import *
 
 
-class Asteroid:
+class Asteroid(ColObj):
     def __init__(self, pos=(0, 0, 0), aa=(1, 0, 0, 0)):
         #pos x, y, z
         #rot pitch, yaw, roll
-        self.pos = list(pos)
+        super().__init__(pos)
         self.quat = axisangle_to_q(aa[0:3], aa[3])
         self.obj = DisplayObj()
         self.obj.objFileImport("./wfobjs/asteroid")
+        self.colr = 2 * self.obj.maxr / 3
 
     def render(self):
         # glMatrixMode(GL_MODELVIEW)
