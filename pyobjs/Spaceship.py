@@ -51,12 +51,11 @@ class Spaceship(ColObj):
             self.obj = DisplayObj()
             self.obj.objFileImport("./wfobjs/spaceship")
             display_cache = self.obj
+            if self.isstatic:
+                self.obj.register()
         else:
             self.obj = display_cache
         self.colr = 2 * self.obj.maxr / 3
-
-        if self.isstatic:
-            self.obj.register()
 
     def setRot(self, mode: int, d=RIGHT, up=0) -> None:
         if up == KP_UP:
@@ -168,16 +167,6 @@ class Spaceship(ColObj):
 
         # glMatrixMode(GL_MODELVIEW)
         glPushMatrix()
-
-        # draw_vec(tuple(map(lambda a: 7 * a, self.getHeading())), self.pos,
-        #          (
-        #              int(self.thrusting == -1),
-        #              int(self.thrusting == 1),
-        #              int(self.thrusting == 2)
-        #          )
-        #          if self.thrusting else
-        #          (1.0, 1.0, 1.0)
-        #          )
 
         self.setThrusterColor()
 

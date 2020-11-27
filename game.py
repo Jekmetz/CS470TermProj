@@ -233,29 +233,39 @@ def main():
         asteroids = []
 
         # deregister all objects if registered
-        for obj in objs:
-            if obj.isstatic:
-                obj.obj.deregister()
+        # for obj in objs:
+        #     if obj.isstatic:
+        #         obj.obj.deregister()
 
         objs = []
 
         # Game generation tweaks
         noise_max = 20
         # planet
+        pradius = random.uniform(16,25)
         prho = random.uniform(200, 200 + level_counter * 100)
         ptheta = random.random() * 2 * np.pi
         pphi = random.random() * np.pi
-        ppos = (
-            prho * np.sin(pphi) * np.cos(ptheta),
-            prho * np.sin(pphi) * np.sin(ptheta),
-            prho * np.cos(pphi)
-        )
+        ppos = spherical_to_cartesian(prho,ptheta,pphi)
+
+        # planet landing plane point
+        level_adjust = min((level_counter-1) / 50, .3)
+        lrho = pradius * random.uniform(.45 + level_adjust, .65 + level_adjust)
+        ltheta = random.random() * 2 * np.pi
+        lphi = random.random() * np.pi
+        lplanepoint = spherical_to_cartesian(lrho,ltheta,lphi)
+
+        # print(lrho / pradius)
+        # print(ltheta * 180/np.pi)
+        # print(lphi * 180/np.pi)
 
         # asteroids
         nasteroids = random.randrange(4, 4 + level_counter * 2)
 
         ship = Spaceship()
-        planetd = Planet(pos=ppos)
+        if planetd:
+            planetd.deregister()
+        planetd = Planet(lplanepoint, pos=ppos, radius=pradius)
 
         objs.append(ship)
         objs.append(planetd)
@@ -312,9 +322,10 @@ def main():
                 # print(event)
                 if event.type == pygame.KEYDOWN and event.key == 118: #V
                     # glMatrixMode(GL_MODELVIEW)
-                    glLoadIdentity()
-                    gluLookAt(0, 0, -10, *ship.pos, 0, 1, 0)
-                    print(glGetDoublev(GL_MODELVIEW_MATRIX))
+                    # glLoadIdentity()
+                    # gluLookAt(0, 0, -10, *ship.pos, 0, 1, 0)
+                    # print(glGetDoublev(GL_MODELVIEW_MATRIX))
+                    initialize_level()
 
                 handleKeyEvent(env, event)
 
@@ -328,6 +339,11 @@ def main():
         ship2planet = tuple(map(lambda p: p[1]-p[0], zip(ship.pos,planetd.pos)))
         ship2planet = tuple(map(lambda a: 8*a,normalize(ship2planet)))
         draw_vec(ship2planet, p1=ship.pos, col=(1.0,1.0,1.0))
+
+        # Draw Axes
+        # draw_vec((1,0,0),add_vecs(ship.pos,(3,3,3)),col=(1,0,0))
+        # draw_vec((0,1,0),add_vecs(ship.pos,(3,3,3)),col=(0,1,0))
+        # draw_vec((0,0,1),add_vecs(ship.pos,(3,3,3)),col=(0,0,1))
 
         calc_ambient()
 

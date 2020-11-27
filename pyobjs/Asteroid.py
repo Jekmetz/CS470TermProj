@@ -28,12 +28,12 @@ class Asteroid(ColObj):
             self.obj = DisplayObj()
             self.obj.objFileImport("./wfobjs/asteroid")
             display_cache = self.obj
+            if self.isstatic:
+                self.obj.register()
         else:
             self.obj = display_cache
-        self.colr = 2 * self.obj.maxr / 3
 
-        if self.isstatic:
-            self.obj.register()
+        self.colr = 2 * self.obj.maxr / 3
 
     def render(self):
         # glMatrixMode(GL_MODELVIEW)

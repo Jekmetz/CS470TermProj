@@ -153,10 +153,12 @@ class DisplayObj:
         else: # Display List
             glCallList(self.dlindex)
 
-    def register(self):
+    def register(self, extraFunc=None):
         index = glGenLists(1)
         glNewList(index,GL_COMPILE)
         self.drawObj()
+        if extraFunc:
+            extraFunc()
         glEndList()
         self.dlindex = index
 
@@ -165,12 +167,12 @@ class DisplayObj:
 
 
 class Material:
-    def __init__(self):
-        self.amb   = (0.2,0.2,0.2,1.0)
-        self.diff  = (0.8,0.8,0.8,0.8)
-        self.spec  = (0.0,0.0,0.0,1.0)
-        self.emm   = (0.0,0.0,0.0,1.0)
-        self.trans = 1.0
+    def __init__(self, amb=(0.2,0.2,0.2,1.0), diff=(0.8,0.8,0.8,0.8), spec=(0.0,0.0,0.0,1.0), emm=(0.0,0.0,0.0,1.0), trans=1.0):
+        self.amb   = amb
+        self.diff  = diff
+        self.spec  = spec
+        self.emm   = emm
+        self.trans = trans
 
     def set_dse(self,d,s,e):
         self.amb = d
