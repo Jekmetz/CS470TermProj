@@ -268,7 +268,7 @@ def main():
         # asteroids
         nasteroids = random.randrange(4, 4 + level_counter * 2)
 
-        ship = Spaceship()
+        ship = Spaceship(lose_cond=lose_condition)
         if planetd:
             planetd.deregister()
         planetd = Planet(lplanepoint, pos=ppos, radius=pradius)
@@ -293,6 +293,44 @@ def main():
 
         init_new_level = False
         level_counter += 1
+
+    def lose_condition():
+        nonlocal level_counter, init_new_level
+        ## TODO: Display lose message and implement 'play again?' logic
+        print("YOU LOSE")
+        level_counter = 1
+        init_new_level = True
+
+    def level_win_condition():
+        nonlocal level_counter, init_new_level
+        ## TODO: Display level win logic and implement continue feature
+        print(f"NEXT LEVEL: {level_counter + 1}")
+        level_counter += 1
+        init_new_level = True
+
+    def check_collisions():
+        nonlocal ship, planetd, asteroids
+
+        if ship.is_colliding(planetd): # if the ship is colliding with the planet...
+            s_vel = ship.getVelMag()
+            s_up = ship.getUpVec()
+            s_pos = ship.pos
+            if planetd.is_good_landing(s_pos, s_vel, s_up):
+                level_win_condition()
+            else:
+                lose_condition()
+                # TODO: damage the ship and then eject them away from the planet from Planet.landingplanept
+
+        tmp_asteroids = [] # create temp asteroids list
+        while asteroids:
+            ast = asteroids.pop()   # get each asteroid
+            if ship.is_colliding(ast): # if the ship is colliding with an asteroid...
+                ship.damage()   # damage the ship and don't add the asteroid back
+                print(ship.health)
+            else:   # if the ship is not colliding...
+                tmp_asteroids.append(ast)   # add the asteroid back
+        while tmp_asteroids:    # add all of the asteroids back
+            asteroids.append(tmp_asteroids.pop())
 
     pygame.init()
     display = (1000, 700)
@@ -319,6 +357,7 @@ def main():
         if init_new_level:
             initialize_level()
 
+        ## EVENT HANDLING ##
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -337,28 +376,29 @@ def main():
 
                 handleKeyEvent(env, event)
 
+        ## RENDERING ##
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # consider looping through objs and rendering in two lines
+        ship.point_arrow_at(planetd.pos)
+
         ship.render() # render ship
         planetd.render()    # render planet
         for asteroid in asteroids:  # render asteroids
             asteroid.render()
-
-        # grab the vector that goes from the ship to the planet
-        ship2planet = tuple(map(lambda p: p[1]-p[0], zip(ship.pos,planetd.pos)))
-        ship2planet = tuple(map(lambda a: 8*a,normalize(ship2planet))) # make it 8 units long
-        draw_vec(ship2planet, p1=ship.pos, col=(1.0,1.0,1.0))   # draw the vector starting at the ship
-        # TODO: Make arrow and render that instead
 
         # Draw Axes
         # draw_vec((1,0,0),add_vecs(ship.pos,(3,3,3)),col=(1,0,0))
         # draw_vec((0,1,0),add_vecs(ship.pos,(3,3,3)),col=(0,1,0))
         # draw_vec((0,0,1),add_vecs(ship.pos,(3,3,3)),col=(0,0,1))
 
-        # lighting
+        ## COLLISION AND GAME LOGIC ##
+        check_collisions()
+
+        ## LIGHTING ##
         calc_ambient()
 
+        ## VIEW ##
         glLoadIdentity() # load identity to recalculate glu_lookat
 
         env = {

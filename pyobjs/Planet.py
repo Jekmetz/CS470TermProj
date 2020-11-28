@@ -26,6 +26,8 @@ landing_material = Material(
 
 class Planet(ColObj):
     NUM_TREES = 20
+    MAX_ACCEPTABLE_LANDING_VELOCITY = .1
+    LANDING_ANGLE_TOLERANCE = np.pi/6   # 30 degree landing angle tolerance
 
     def __init__(self, landingplanept, radius=20, pos=(0, 0, 0)):
 
@@ -45,7 +47,7 @@ class Planet(ColObj):
         self.obj.objFileImport("./wfobjs/sphere")
 
         # collision radius set to maxr. This is a sphere after all
-        self.colr = self.obj.maxr
+        self.colr = self.radius
         self.obj.scale = self.radius
 
         # Initialize landable material
@@ -87,6 +89,7 @@ class Planet(ColObj):
 
             rv = cross_vecs((0,1,0), vert)          # rotation vector axis is cross between y axis and the point -> landing point vec
             ra = np.arccos(dot_vecs((0,1,0),vert))  # rotation angle calculation
+            # don't divide by magnitudes in above arrow calculation because (0,1,0) and vert have magnitude 1
 
             return vert, rv, ra
 
@@ -98,9 +101,14 @@ class Planet(ColObj):
             self.tree_obj.drawObj()
             glPopMatrix()
 
+    def is_landing_area_pt(self, pt):
+        nvec = self.landingplanept
+        d = dot_vecs(nvec, self.landingplanept)  # get dot from nvec and landingplanept to do outside calcs
+        return dot_vecs(nvec, pt) < d
+
     def deregister(self):
-        super().deregister()
-        self.tree_obj.deregister()
+            super().deregister()
+            self.tree_obj.deregister()
 
     def choose_landing_spot(self, planept):
         nvec = planept
@@ -116,3 +124,18 @@ class Planet(ColObj):
         for i,surf in enumerate(self.obj.surfs):    # for each surf...
             if set(surf[0]).issubset(marked_verts): # if each of the surf verts exist in the marked_verts...
                 self.obj.cols[i] = "landable"   # color it with the landable color
+
+    def is_good_landing(self, s_pos, s_vel, s_up):
+        to_ship_vec = sub_vecs(self.pos, s_pos) # get the vector from the planet to the ship
+        angle = np.arccos(dot_vecs(s_up, to_ship_vec) / (mag(s_up) * mag(to_ship_vec)))
+
+        print(self.is_landing_area_pt(s_pos), s_vel, angle)
+
+        # return true if
+        # we are on the right side of the landing plane and
+        # we are not coming in too hot and
+        # we are pointing with our bottom facing the planet
+        return \
+            self.is_landing_area_pt(s_pos) and \
+            s_vel <= Planet.MAX_ACCEPTABLE_LANDING_VELOCITY and \
+            angle <= Planet.LANDING_ANGLE_TOLERANCE

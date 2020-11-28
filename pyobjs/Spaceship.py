@@ -15,31 +15,40 @@ from utils.util import *
 from pyobjs.ColObj import *
 
 # GLOBALS
-display_cache = None
+display_cache = {}
 
 
 class Spaceship(ColObj):
-    RACC = .001  # Rotation Acceleration
-    RMAX = .1  # Rotation Max
-    RIGHT = 1  # Rotate Right
-    LEFT = -RIGHT  # Rotate Left
+    RACC = .001     # Rotation Acceleration
+    RMAX = .1       # Rotation Max
+    RIGHT = 1       # Rotate Right
+    LEFT = -RIGHT   # Rotate Left
 
-    PACC = .01  # Positional Acceleration
-    THF = 1  # Thrust Forward
-    THB = -THF  # Thrust Back
+    PACC = .01      # Positional Acceleration
+    THF = 1         # Thrust Forward
+    THB = -THF      # Thrust Back
     TOL = .01
 
-    ROLL = 0  # Roll index
-    PITCH = 1  # Pitch index
-    YAW = 2  # Yaw index
+    ROLL = 0    # Roll index
+    PITCH = 1   # Pitch index
+    YAW = 2     # Yaw index
 
     ROTSET = "ROTSET"
     ROTRESET = "ROTRESET"
     STEADY = "STEADY"
 
-    def __init__(self, pos=(0, 0, 0), orient=(0, 1, 0, 0)):
+    HEALTH = 3
+    FUEL = 100
+
+    THRUST_LOSS = .5
+    THRUST_OPP_LOSS = .8
+
+    WAVER_SPEED = np.pi/20  # higher is faster for the arrow waver speed
+    WAVER_SCALE = .7        # how far arrow waver oscillates in each direction
+
+    def __init__(self, pos=(0, 0, 0), orient=(0, 1, 0, 0), lose_cond=None):
         global display_cache
-        super().__init__(pos, False)
+        super().__init__(pos, True)
 
         self.orient = orient    # quaternion that determines orientation
         self.rpy = [0, 0, 0]    # roll pitch yaw angular accelerations
@@ -50,12 +59,27 @@ class Spaceship(ColObj):
         if not display_cache:   # load display object
             self.obj = DisplayObj()
             self.obj.objFileImport("./wfobjs/spaceship")
-            display_cache = self.obj
-            if self.isstatic:
-                self.obj.register()
+            self.obj.register()
+            display_cache["ship"] = self.obj
+
+            self.arrow_obj = DisplayObj()
+            self.arrow_obj.objFileImport("./wfobjs/arrow")
+            self.arrow_obj.register()
+            display_cache["arrow"] = self.arrow_obj
         else:
-            self.obj = display_cache
+            self.obj = display_cache["ship"]
+            self.arrow_obj = display_cache["arrow"]
+
         self.colr = 2 * self.obj.maxr / 3
+        self.health = Spaceship.HEALTH
+        self.fuel = Spaceship.FUEL
+
+        # lose condition function
+        self.lose_cond_func = lose_cond
+
+        # arrow stuff
+        self.arrow_vec = (1, 1, 1)
+        self.arrow_waver_angle = 0
 
     # Set rotation based on roll, pitch, yaw, and direction
     def setRot(self, mode: int, d=RIGHT, up=0) -> None:
@@ -93,7 +117,7 @@ class Spaceship(ColObj):
 
     # apply velocity to position
     def applyVel(self):
-        self.pos = add_vecs(self.vel, self.pos);
+        self.pos = add_vecs(self.vel, self.pos)
         # self.orient[3][0:3] = add_vecs(self.vel, self.orient[3][0:3])
 
     # set rotation calculation - set angular velocity to itself + the direction * the rotational
@@ -177,6 +201,40 @@ class Spaceship(ColObj):
 
         self.obj.mats["Thruster"].set_dse(kd, ks, ke)
 
+    def damage(self):
+        self.health -= 1
+        alive = self.health > 0
+        if not alive and self.lose_cond_func:     # if we are dead and have a lose condition function
+            self.lose_cond_func()   # lose the game
+        return alive # return alive status
+
+    # point arrow at point
+    def point_arrow_at(self, pt):
+        self.arrow_vec = normalize(sub_vecs(self.pos, pt))
+
+    def render_arrow(self):
+
+        arrow_pos_mag = self.colr + np.sin(self.arrow_waver_angle) * Spaceship.WAVER_SCALE
+        self.arrow_waver_angle = (self.arrow_waver_angle + Spaceship.WAVER_SPEED) % (2*np.pi)
+
+        # arrow position is supposed to be between the ship and the point
+        # take the vector which points towards the planet, multiply it by some value to get away from the ship,
+        # multiply that by the opposite rotation of the ship to get the point we want
+        arrow_pos = qv_mult(q_conjugate(self.orient), scalar_mult(arrow_pos_mag,self.arrow_vec))
+
+        rv = cross_vecs((0, 1, 0), arrow_pos)  # rotation vector axis is cross between y axis and the position from the ship
+        ra = np.arccos(dot_vecs((0, 1, 0), arrow_pos)/arrow_pos_mag)  # rotation angle calculation
+        # magnitude of arrow vec is arrow_pos_mag... magnitude of (0,1,0) is 1
+
+        glPushMatrix()
+
+        glTranslatef(*arrow_pos)
+        glRotatef(ra * 180 / np.pi, *rv)
+
+        self.arrow_obj.drawObj()
+
+        glPopMatrix()
+
     def render(self):
         self.applyVel()
 
@@ -203,7 +261,16 @@ class Spaceship(ColObj):
         # self.draw_collision_sphere() # collision sphere
         self.obj.drawObj()
 
+        self.render_arrow()
+
         glPopMatrix()
 
     def getHeading(self):
         return qv_mult(self.orient, (1.0, 0.0, 0.0))
+
+    def getUpVec(self):
+        return qv_mult(self.orient, (0.0, 1.0, 0.0))
+
+    # get velocity magnitude
+    def getVelMag(self):
+        return mag(self.vel)

@@ -5,6 +5,7 @@ Author: Jay Kmetz
 
 # PYTHON IMPORTS
 import numpy as np
+import random as random
 from OpenGL.GL import *
 
 # LOCAL IMPORTS
@@ -19,6 +20,8 @@ display_cache = None
 
 
 class Asteroid(ColObj):
+    ASTEROID_VEL = .03
+
     def __init__(self, pos=(0, 0, 0), aa=(1, 0, 0, 0)):
         global display_cache
         super().__init__(pos, True)
@@ -34,12 +37,21 @@ class Asteroid(ColObj):
             self.obj = display_cache
 
         self.colr = 2 * self.obj.maxr / 3   # 2/3rds the max sphere that bounds it
+        # choose random velocity vector and scale it by asteroid velocity
+        self.vel = tuple(
+            map(
+                lambda a: a*Asteroid.ASTEROID_VEL,
+                normalize(tuple(random.uniform(-1,1) for i in range(3)))
+            )
+        )
 
     def render(self):
         # glMatrixMode(GL_MODELVIEW)
         glPushMatrix()
 
         v, a = q_to_axisangle(self.quat)    # grab openGL happy rotation
+
+        self.pos = add_vecs(self.pos,self.vel)  # move position by velocity vector
 
         glTranslatef(*self.pos)     # translate
         glRotatef(a*180/np.pi, *v)  # rotate
