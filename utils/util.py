@@ -5,6 +5,7 @@ import numpy as np
 KP_UP = 'KP_UP'
 
 
+# Draw vector vec starting at point p1 with color col
 def draw_vec(vec, p1=(0,0,0), col=(1.0,1.0,1.0)):
     glBegin(GL_LINES)
     glMaterialfv(GL_FRONT, GL_AMBIENT, col)

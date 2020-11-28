@@ -38,17 +38,17 @@ def loadMats(fname):
 
 class DisplayObj:
     def __init__(self, verts=None, norms=None, edges=None, surfs=None, cols=None, nam=None, mats=None):
-        self.verts = verts
-        self.norms = norms
-        self.edges = edges
-        self.surfs = surfs
-        self.cols = cols
-        self.name = nam
-        self.mats = None
-        self.maxr = 0
-        self.scale = 1.0
+        self.verts = verts  # vertex list
+        self.norms = norms  # vertex norm list
+        self.edges = edges  # edge list
+        self.surfs = surfs  # surface, surface norm
+        self.cols = cols    # color list, parallel with surface
+        self.name = nam     # name
+        self.mats = None    # Materials: hashmap materialname -> Material
+        self.maxr = 0       # max radius
+        self.scale = 1.0    # scale
 
-        self.dlindex = -1
+        self.dlindex = -1   # display list index
 
     def objFileImport(self, objName):
         # Init vars
@@ -123,8 +123,9 @@ class DisplayObj:
     def drawObj(self):
         if self.dlindex == -1:  # Immediate mode
             glScalef(self.scale, self.scale, self.scale)
-            for col, surface_norm in zip(self.cols, self.surfs):
-                mat = self.mats[col] or Material()
+            for col, surface_norm in zip(self.cols, self.surfs): # for the color, surface, surface_norm
+                mat = self.mats[col] if col in self.mats else Material()
+                # Set material properties
                 glMaterialfv(GL_FRONT, GL_AMBIENT, mat.amb)
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, mat.diff)
                 glMaterialfv(GL_FRONT, GL_SPECULAR, mat.spec)

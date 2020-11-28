@@ -1,14 +1,16 @@
 from math import *
 import numpy
 
+
 def normalize(v, tolerance=0.00001):
-    mag2 = sum(n * n for n in v)
+    mag2 = sum(n * n for n in v) # mag squared
     if mag2 == 0:
         return v
     if abs(mag2 - 1.0) > tolerance:
         mag = sqrt(mag2)
         v = tuple(n / mag for n in v)
     return v
+
 
 def q_mult(q1, q2):
     w1, x1, y1, z1 = q1
@@ -19,13 +21,16 @@ def q_mult(q1, q2):
     z = w1 * z2 + z1 * w2 + x1 * y2 - y1 * x2
     return w, x, y, z
 
+
 def q_conjugate(q):
     w, x, y, z = q
-    return (w, -x, -y, -z)
+    return w, -x, -y, -z
+
 
 def qv_mult(q1, v1):
     q2 = (0.0,) + v1
     return q_mult(q_mult(q1, q2), q_conjugate(q1))[1:]
+
 
 def axisangle_to_q(v, theta):
     v = normalize(v)
@@ -37,15 +42,19 @@ def axisangle_to_q(v, theta):
     z = z * sin(theta)
     return w, x, y, z
 
+
 def q_to_axisangle(q):
     w, v = q[0], q[1:]
     theta = acos(w) * 2.0
     return normalize(v), theta
 
+
 def q_to_mat4(q):
     w, x, y, z = q
     return numpy.array(
-        [[1 - 2*y*y - 2*z*z, 2*x*y - 2*z*w, 2*x*z + 2*y*w, 0],
-        [2*x*y + 2*z*w, 1 - 2*x*x - 2*z*z, 2*y*z - 2*x*w, 0],
-        [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x*x - 2*y*y, 0],
-        [0, 0, 0, 1] ],'f')
+        [
+            [1 - 2*y*y - 2*z*z, 2*x*y - 2*z*w, 2*x*z + 2*y*w, 0],
+            [2*x*y + 2*z*w, 1 - 2*x*x - 2*z*z, 2*y*z - 2*x*w, 0],
+            [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1 - 2*x*x - 2*y*y, 0],
+            [0, 0, 0, 1]
+        ],'f')

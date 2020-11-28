@@ -5,9 +5,9 @@ Author: Jay Kmetz
 from OpenGL.GL import *
 
 from utils.util import is_colliding
-from utils.DisplayObj import DisplayObj
 
 
+# Common object... refactor later
 class ColObj:
     def __init__(self, pos, static=False):
         self.colr = 0
@@ -19,5 +19,5 @@ class ColObj:
         return is_colliding(self.pos, self.colr, other.pos, other.colr)
 
     def deregister(self):
-        if self.isstatic:
-            self.obj.deregister()
+        if self.isstatic:           # if the object is static...
+            self.obj.deregister()   # deregister it

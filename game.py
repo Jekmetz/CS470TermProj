@@ -112,50 +112,50 @@ def handleKeyEvent(env, event):
     up = KP_UP if event.type == pygame.KEYUP else 0
     ship = env["ship"]
 
-    def rl(up):
+    def rl(up): # roll left
         ship.setRot(Spaceship.ROLL, Spaceship.LEFT, up)
-    def rr(up):
+    def rr(up): # roll right
         ship.setRot(Spaceship.ROLL, Spaceship.RIGHT, up)
-    def rc(up):
+    def rc(up): # roll center
         ship.resetRot(Spaceship.ROLL)
-    def pl(up):
+    def pl(up): # pitch left
         ship.setRot(Spaceship.PITCH, Spaceship.LEFT, up)
-    def pr(up):
+    def pr(up): # pitch right
         ship.setRot(Spaceship.PITCH, Spaceship.RIGHT, up)
-    def pc(up):
+    def pc(up): # pitch center
         ship.resetRot(Spaceship.PITCH, up)
-    def yl(up):
+    def yl(up): # yaw left
         ship.setRot(Spaceship.YAW, Spaceship.LEFT, up)
-    def yr(up):
+    def yr(up): # yaw right
         ship.setRot(Spaceship.YAW, Spaceship.RIGHT, up)
-    def yc(up):
+    def yc(up): # yaw center
         ship.resetRot(Spaceship.YAW, up)
-    def tu(up):
+    def tu(up): # thrust up
         ship.setThrust(Spaceship.THF, up)
-    def td(up):
+    def td(up): # thrust down
         ship.setThrust(Spaceship.THB, up)
-    def tc(up):
+    def tc(up): # thrust center
         ship.applyOppThrust(up)
-    def vbr(up):
+    def vbr(up):    # view back right
         global CURVIEW
         if not up:
             CURVIEW = V_BACKRIGHT
-    def vfl(up):
+    def vfl(up):    # view front left
         global CURVIEW
         if not up:
             CURVIEW = V_FRONTLEFT
-    def vt(up):
+    def vt(up): # view top
         global CURVIEW
         if not up:
             CURVIEW = V_TOP
-    def vs(up):
+    def vs(up): # view static
         global CURVIEW
         if not up:
             v_pos = U_VIEWS[CURVIEW].get_position()
             v_up = U_VIEWS[CURVIEW].upvec
             U_VIEWS[V_STATIC].set_static_view(ship.pos, ship.orient,v_pos,v_up)
             CURVIEW = V_STATIC
-    def vo(up):
+    def vo(up): # view orbit
         global CURVIEW
         if not up:
             CURVIEW = V_ORBIT
@@ -187,6 +187,7 @@ def handleKeyEvent(env, event):
 def init_lighting():
     glEnable(GL_LIGHTING)
 
+    # Gentle orange glow
     lmodel_ambient = (255/255, 197/255, 143/255, 0.8)
     glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient)
 
@@ -213,6 +214,7 @@ def calc_ambient():
 
 def calc_view(env):
     ship = env["ship"]
+    # calculate view from View object
     U_VIEWS[CURVIEW].local_gluLookAt(ship.pos, ship.orient)
 
 
@@ -242,6 +244,8 @@ def main():
         # Game generation tweaks
         noise_max = 20
         # planet
+        # Generate random radius and spherical coordinates for planet and then translate
+        # into cartesian coordinates
         pradius = random.uniform(16,25)
         prho = random.uniform(200, 200 + level_counter * 100)
         ptheta = random.random() * 2 * np.pi
@@ -249,6 +253,8 @@ def main():
         ppos = spherical_to_cartesian(prho,ptheta,pphi)
 
         # planet landing plane point
+        # grab point inside sphere and then translate to cartesian coordinates. Point moves further out as
+        # level increases
         level_adjust = min((level_counter-1) / 50, .3)
         lrho = pradius * random.uniform(.45 + level_adjust, .65 + level_adjust)
         ltheta = random.random() * 2 * np.pi
@@ -271,6 +277,8 @@ def main():
         objs.append(planetd)
 
         for i in range(nasteroids):
+            # choose percentage along line and then create some random noise for each asteroid
+            # increase number of asteroids and noise as you go
             percent = random.uniform(.1, .9)
             noise = (
                 noise_max * random.uniform(-1,1), # noisex
@@ -320,7 +328,7 @@ def main():
                     "ship": ship
                 }
                 # print(event)
-                if event.type == pygame.KEYDOWN and event.key == 118: #V
+                if event.type == pygame.KEYDOWN and event.key == 118: # V
                     # glMatrixMode(GL_MODELVIEW)
                     # glLoadIdentity()
                     # gluLookAt(0, 0, -10, *ship.pos, 0, 1, 0)
@@ -331,31 +339,35 @@ def main():
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        ship.render()
-        planetd.render()
-        for asteroid in asteroids:
+        # consider looping through objs and rendering in two lines
+        ship.render() # render ship
+        planetd.render()    # render planet
+        for asteroid in asteroids:  # render asteroids
             asteroid.render()
 
+        # grab the vector that goes from the ship to the planet
         ship2planet = tuple(map(lambda p: p[1]-p[0], zip(ship.pos,planetd.pos)))
-        ship2planet = tuple(map(lambda a: 8*a,normalize(ship2planet)))
-        draw_vec(ship2planet, p1=ship.pos, col=(1.0,1.0,1.0))
+        ship2planet = tuple(map(lambda a: 8*a,normalize(ship2planet))) # make it 8 units long
+        draw_vec(ship2planet, p1=ship.pos, col=(1.0,1.0,1.0))   # draw the vector starting at the ship
+        # TODO: Make arrow and render that instead
 
         # Draw Axes
         # draw_vec((1,0,0),add_vecs(ship.pos,(3,3,3)),col=(1,0,0))
         # draw_vec((0,1,0),add_vecs(ship.pos,(3,3,3)),col=(0,1,0))
         # draw_vec((0,0,1),add_vecs(ship.pos,(3,3,3)),col=(0,0,1))
 
+        # lighting
         calc_ambient()
 
-        glLoadIdentity()
+        glLoadIdentity() # load identity to recalculate glu_lookat
 
         env = {
             "ship": ship
         }
         calc_view(env)
 
-        pygame.display.flip()
-        clock.tick()
+        pygame.display.flip()   # flip buffers
+        clock.tick()    # tick the clock
 
 
 if __name__ == "__main__":

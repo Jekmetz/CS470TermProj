@@ -41,13 +41,13 @@ class Spaceship(ColObj):
         global display_cache
         super().__init__(pos, False)
 
-        self.orient = orient
-        self.rpy = [0, 0, 0]
-        self.actions = [(Spaceship.STEADY), (Spaceship.STEADY), (Spaceship.STEADY)]
-        self.force = (0, 0, 0)
-        self.vel = (0, 0, 0)
-        self.thrusting = 0
-        if not display_cache:
+        self.orient = orient    # quaternion that determines orientation
+        self.rpy = [0, 0, 0]    # roll pitch yaw angular accelerations
+        self.actions = [(Spaceship.STEADY), (Spaceship.STEADY), (Spaceship.STEADY)] # roll pitch yaw actions
+        self.force = (0, 0, 0)  # positional force vectors
+        self.vel = (0, 0, 0)    # positional velocity vectors
+        self.thrusting = 0      # thrusting mode
+        if not display_cache:   # load display object
             self.obj = DisplayObj()
             self.obj.objFileImport("./wfobjs/spaceship")
             display_cache = self.obj
@@ -57,18 +57,21 @@ class Spaceship(ColObj):
             self.obj = display_cache
         self.colr = 2 * self.obj.maxr / 3
 
+    # Set rotation based on roll, pitch, yaw, and direction
     def setRot(self, mode: int, d=RIGHT, up=0) -> None:
         if up == KP_UP:
             self.actions[mode] = (Spaceship.STEADY)
         else:
             self.actions[mode] = (Spaceship.ROTSET, (mode, d))
 
+    # reset rotation roll pitch yaw based on mode and up... opposite force
     def resetRot(self, mode: int, up=0) -> None:
         if up == KP_UP:
             self.actions[mode] = (Spaceship.STEADY)
         else:
             self.actions[mode] = (Spaceship.ROTRESET, mode)
 
+    # set positional acceleration
     def setThrust(self, mode=THF, up=0):
         if up == KP_UP:
             self.force = (0, 0, 0)
@@ -76,9 +79,11 @@ class Spaceship(ColObj):
         else:
             self.thrusting = mode
 
+    # add force to velocity
     def applyThrust(self):
         self.vel = add_vecs(self.force, self.vel)
 
+    # apply force opposite to current velocity
     def applyOppThrust(self, up=0):
         if up == KP_UP:
             self.force = (0, 0, 0)
@@ -86,10 +91,13 @@ class Spaceship(ColObj):
         else:
             self.thrusting = 2
 
+    # apply velocity to position
     def applyVel(self):
         self.pos = add_vecs(self.vel, self.pos);
         # self.orient[3][0:3] = add_vecs(self.vel, self.orient[3][0:3])
 
+    # set rotation calculation - set angular velocity to itself + the direction * the rotational
+    # acceleration or the Max rotational acceleration... whichever is higher
     def setRotCalc(self, mode: int, d=RIGHT) -> None:
         if np.sign(d) == 1:
             self.rpy[mode] = min(self.rpy[mode] + d * Spaceship.RACC, Spaceship.RMAX)
@@ -97,6 +105,7 @@ class Spaceship(ColObj):
             self.rpy[mode] = max(self.rpy[mode] + d * Spaceship.RACC, -Spaceship.RMAX)
         # on sign==0, pass
 
+    # Bleed off current rotational velocity by applying a 'force' which is opposite
     def resetRotCalc(self, mode: int) -> None:
         if np.sign(self.rpy[mode]) == 1:
             self.rpy[mode] -= Spaceship.RACC
@@ -107,25 +116,30 @@ class Spaceship(ColObj):
             self.rpy[mode] = 0
         # on sign==0, pass
 
+    # adjust rotational and positional acceleration based on current state variables
     def adjust(self):
         # Rotational Acceleration
-        for rpy in range(3):
-            if self.actions[rpy][0] != Spaceship.STEADY:
-                if self.actions[rpy][0] == Spaceship.ROTSET:
-                    self.setRotCalc(*self.actions[rpy][1])
-                elif self.actions[rpy][0] == Spaceship.ROTRESET:
-                    self.resetRotCalc(self.actions[rpy][1])
+        for rpy in range(3):        # for rpy indicies...
+            if self.actions[rpy][0] != Spaceship.STEADY:    # if we are not trying to be steady...
+                if self.actions[rpy][0] == Spaceship.ROTSET:    # if we are applying rotation...
+                    self.setRotCalc(*self.actions[rpy][1])  # send mode and direction to setRotCalc
+                elif self.actions[rpy][0] == Spaceship.ROTRESET:    # if we are resetting rotation...
+                    self.resetRotCalc(self.actions[rpy][1]) # send mode to resetRotCalc
 
         # Positional Acceleration
         if self.thrusting == 2: # If we are applying an opposite thrust...
             if mag(self.vel) <= Spaceship.TOL:
                 self.force = (0, 0, 0)
                 self.vel = (0, 0, 0)
-            else:
+            else: # if we are trying to slow down...
+                # get negative velocity, make it scale with positional acceleration, and apply
                 self.force = tuple(map(lambda val: Spaceship.PACC * val, normalize(tuple(map(lambda val: -1 * val, self.vel)))))
         else: # If we are applying a normal force...
+            # apply thrusting force in direction of thrusting scaled to positional acceleration
             self.force = tuple(map(lambda val: np.sign(self.thrusting) * Spaceship.PACC * val, self.getHeading()))
 
+    # See Asteroid for further clarification... Take axis and rotate by angle... turn to quat
+    # multiply. Success.
     def rotate(self):
         if self.rpy[0]:
             rot_x = normalize(axisangle_to_q((1.0, 0.0, 0.0), self.rpy[0]))
@@ -142,6 +156,7 @@ class Spaceship(ColObj):
     def showMat(self):
         print(self.orient)
 
+    # Set thruster color based on current force
     def setThrusterColor(self):
         if self.thrusting == -1:  # backwards
             kd = (0.800000, 0.002302, 0.001986)
@@ -168,8 +183,10 @@ class Spaceship(ColObj):
         # glMatrixMode(GL_MODELVIEW)
         glPushMatrix()
 
+        # Set the thruster color to necessary material
         self.setThrusterColor()
 
+        # Translate and rotate
         v, a = q_to_axisangle(self.orient)
 
         glTranslatef(*self.pos)

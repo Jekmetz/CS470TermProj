@@ -15,7 +15,7 @@ from utils.DisplayObj import Material
 from utils.util import *
 from pyobjs.ColObj import *
 
-
+# Material definition for landing zone
 landing_material = Material(
     amb=(0.069405, 0.640000, 0.047737),
     diff=(0.069405, 0.640000, 0.047737),
@@ -28,29 +28,34 @@ class Planet(ColObj):
     NUM_TREES = 20
 
     def __init__(self, landingplanept, radius=20, pos=(0, 0, 0)):
-        global display_cache
 
+        # creating call list for tree
         self.tree_obj = DisplayObj()
         self.tree_obj.objFileImport("./wfobjs/tree")
         self.tree_obj.register()
 
+        # Radius and landing plane point for planet
         self.radius = radius
         self.landingplanept = landingplanept
 
         super().__init__(pos, True)
 
+        # Planet display object
         self.obj = DisplayObj()
         self.obj.objFileImport("./wfobjs/sphere")
 
+        # collision radius set to maxr. This is a sphere after all
         self.colr = self.obj.maxr
         self.obj.scale = self.radius
 
+        # Initialize landable material
         self.obj.mats["landable"] = landing_material
 
+        # do landing spot calculations to change colors of correct faces
         self.choose_landing_spot(landingplanept)
 
         if self.isstatic:
-            self.obj.register(self.populate_trees)
+            self.obj.register(self.populate_trees) # Throw in the trees to minimize call list
 
     def render(self):
         # glMatrixMode(GL_MODELVIEW)
@@ -63,22 +68,25 @@ class Planet(ColObj):
         glPopMatrix()
 
     def populate_trees(self):
+        # Normal vector is from 0,0,0 to the landing point i.e. the landing point
         nvec = self.landingplanept
-        d = dot_vecs(nvec,self.landingplanept)
+        d = dot_vecs(nvec,self.landingplanept) # get dot from nvec and landingplanept to do outside calcs
 
         def generate_tree():
             go = True
             vert = None
-            while go:
+            while go:   # while we still need to guess...
+                # pick a random theta and phi inside the circle
                 theta = random.random() * 2 * np.pi
                 phi = random.random() * np.pi
                 vert = spherical_to_cartesian(1.0,theta,phi)
+                # Check if it is outside the landing spot
                 if dot_vecs(nvec, scalar_mult(self.radius,vert)) < d:
+                    # if it is good, march on, soldier
                     go = False
 
-            rv = cross_vecs((0,1,0), vert)
-            ra = np.arccos(dot_vecs((0,1,0),vert))
-            print(mag(vert),ra)
+            rv = cross_vecs((0,1,0), vert)          # rotation vector axis is cross between y axis and the point -> landing point vec
+            ra = np.arccos(dot_vecs((0,1,0),vert))  # rotation angle calculation
 
             return vert, rv, ra
 
@@ -99,11 +107,12 @@ class Planet(ColObj):
         d = dot_vecs(nvec,planept) # planept is both the normal vector and the point on the plane
         marked_verts = set()
 
+        # for each of the verticies...
         for i,vert in enumerate(self.obj.verts):
             vert = scalar_mult(self.radius, vert)
-            if dot_vecs(nvec, vert) >= d:
-                marked_verts.add(i)
+            if dot_vecs(nvec, vert) >= d:   # if the vert is on the opposite side of the plane than the center...
+                marked_verts.add(i) # Mark that john
 
-        for i,surf in enumerate(self.obj.surfs):
-            if set(surf[0]).issubset(marked_verts):
-                self.obj.cols[i] = "landable"
+        for i,surf in enumerate(self.obj.surfs):    # for each surf...
+            if set(surf[0]).issubset(marked_verts): # if each of the surf verts exist in the marked_verts...
+                self.obj.cols[i] = "landable"   # color it with the landable color

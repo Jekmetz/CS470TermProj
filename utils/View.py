@@ -30,29 +30,29 @@ class View:
         shipx, shipy, shipz = s_pos
 
         if self.type == View.VT_STATIC: # STATIC VIEW
-            px, py, pz = self.st_pos
-            ux, uy, uz = self.st_up
+            px, py, pz = self.st_pos    # constant position
+            ux, uy, uz = self.st_up     # constant up
             gluLookAt(
                 px, py, pz,
                 shipx, shipy, shipz,
                 ux, uy, uz)
 
         elif self.type == View.VT_SHIP_RELATIVE: # SHIP RELATIVE VIEW
-            px, py, pz = qv_mult(s_quat, self.posoff)
-            ex, ey, ez = qv_mult(s_quat, self.lookat)
-            ux, uy, uz = qv_mult(s_quat, self.upvec)
+            px, py, pz = qv_mult(s_quat, self.posoff)   # ship orientation with the position offset
+            ex, ey, ez = qv_mult(s_quat, self.lookat)   # lookat with the ship orientation
+            ux, uy, uz = qv_mult(s_quat, self.upvec)    # up vec with the ship orientation
             gluLookAt(
                 shipx + px, shipy + py, shipz + pz,
                 shipx + ex, shipy + ey, shipz + ez,
                 ux, uy, uz)
 
         elif self.type == View.VT_ORBIT: # ORBIT VIEW
-            py = self.posoff[1]
-            px, pz = (self.orbitr * np.cos(self.th), self.orbitr * np.sin(self.th))
-            px, py, pz = qv_mult(s_quat, (px,py,pz))
-            self.th = (self.th + np.pi/60) % (2*np.pi)
+            py = self.posoff[1] # constant y
+            px, pz = (self.orbitr * np.cos(self.th), self.orbitr * np.sin(self.th)) # r,theta -> x,z
+            px, py, pz = qv_mult(s_quat, (px,py,pz))    # multiply the orbit by the orientation
+            self.th = (self.th + np.pi/60) % (2*np.pi)  # add to the thetas and mod 2 pi
 
-            ux, uy, uz = qv_mult(s_quat, self.upvec)
+            ux, uy, uz = qv_mult(s_quat, self.upvec)    # rotate up with ship orientation
 
             gluLookAt(
                 shipx + px, shipy + py, shipz + pz,
@@ -64,11 +64,13 @@ class View:
         if self.type in (View.VT_SHIP_RELATIVE, View.VT_STATIC):
             return self.posoff
         elif self.type == View.VT_ORBIT:
-            py = self.posoff[1]
-            px, pz = (self.orbitr * np.cos(self.th), self.orbitr * np.sin(self.th))
+            py = self.posoff[1]     # py stays the same
+            px, pz = (self.orbitr * np.cos(self.th), self.orbitr * np.sin(self.th)) # px and pz get calculated along the circle
             return px,py,pz
 
     def set_static_view(self, s_pos, s_quat, v_pos, v_up):
+        # Multiply the ships orientation by the view position offset,
+        # and add that to the ship position
         self.st_pos = tuple(map(sum,zip(s_pos,qv_mult(s_quat, v_pos))))
         self.posoff = v_pos
         self.upvec = v_up
