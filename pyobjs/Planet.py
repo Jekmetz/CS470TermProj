@@ -54,7 +54,7 @@ class Planet(ColObj):
         self.obj.mats["landable"] = landing_material
 
         # do landing spot calculations to change colors of correct faces
-        self.choose_landing_spot(landingplanept)
+        self.choose_landing_spot()
 
         if self.isstatic:
             self.obj.register(self.populate_trees) # Throw in the trees to minimize call list
@@ -107,12 +107,12 @@ class Planet(ColObj):
         return dot_vecs(nvec, pt) < d
 
     def deregister(self):
-            super().deregister()
-            self.tree_obj.deregister()
+        super().deregister()
+        self.tree_obj.deregister()
 
-    def choose_landing_spot(self, planept):
-        nvec = planept
-        d = dot_vecs(nvec,planept) # planept is both the normal vector and the point on the plane
+    def choose_landing_spot(self):
+        nvec = self.landingplanept
+        d = dot_vecs(nvec,self.landingplanept) # landingplanept is both the normal vector and the point on the plane
         marked_verts = set()
 
         # for each of the verticies...
@@ -125,17 +125,29 @@ class Planet(ColObj):
             if set(surf[0]).issubset(marked_verts): # if each of the surf verts exist in the marked_verts...
                 self.obj.cols[i] = "landable"   # color it with the landable color
 
+    def ejectpoint(self):
+        # Grab the landing plane vector, make it of length radius + 15, and then add it to the position
+        return add_vecs(self.pos,scalar_mult(self.radius + 15,normalize(self.landingplanept)))
+
     def is_good_landing(self, s_pos, s_vel, s_up):
         to_ship_vec = sub_vecs(self.pos, s_pos) # get the vector from the planet to the ship
         angle = np.arccos(dot_vecs(s_up, to_ship_vec) / (mag(s_up) * mag(to_ship_vec)))
 
-        print(self.is_landing_area_pt(s_pos), s_vel, angle)
+        is_landing_area = self.is_landing_area_pt(sub_vecs(s_pos, self.pos))
+        slow_enough = s_vel <= Planet.MAX_ACCEPTABLE_LANDING_VELOCITY
+        angle_good = angle <= Planet.LANDING_ANGLE_TOLERANCE
+        print(is_landing_area, s_vel, angle)
+        dmgtxt = ""
+
+        if not is_landing_area:
+            dmgtxt += "You did not land in the landing area! "
+        elif not slow_enough:
+            dmgtxt += "You were coming in too hot! "
+        elif not angle_good:
+            dmgtxt += "You did not land flat enough! "
 
         # return true if
         # we are on the right side of the landing plane and
         # we are not coming in too hot and
         # we are pointing with our bottom facing the planet
-        return \
-            self.is_landing_area_pt(s_pos) and \
-            s_vel <= Planet.MAX_ACCEPTABLE_LANDING_VELOCITY and \
-            angle <= Planet.LANDING_ANGLE_TOLERANCE
+        return is_landing_area and slow_enough and angle_good, dmgtxt

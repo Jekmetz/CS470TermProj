@@ -61,3 +61,7 @@ def spherical_to_cartesian(rho, theta, phi):
         rho * np.sin(phi) * np.sin(theta),
         rho * np.cos(phi)
     )
+
+
+def coltup_to_bytes(tup):
+    return bytes.fromhex(''.join(f'{n:02x}' for n in tup))

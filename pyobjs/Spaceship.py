@@ -59,7 +59,7 @@ class Spaceship(ColObj):
         if not display_cache:   # load display object
             self.obj = DisplayObj()
             self.obj.objFileImport("./wfobjs/spaceship")
-            self.obj.register()
+            # self.obj.register()
             display_cache["ship"] = self.obj
 
             self.arrow_obj = DisplayObj()
@@ -201,11 +201,11 @@ class Spaceship(ColObj):
 
         self.obj.mats["Thruster"].set_dse(kd, ks, ke)
 
-    def damage(self):
+    def damage(self, dmgtxt=""):
         self.health -= 1
         alive = self.health > 0
         if not alive and self.lose_cond_func:     # if we are dead and have a lose condition function
-            self.lose_cond_func()   # lose the game
+            self.lose_cond_func(dmgtxt=dmgtxt)   # lose the game
         return alive # return alive status
 
     # point arrow at point
@@ -213,7 +213,6 @@ class Spaceship(ColObj):
         self.arrow_vec = normalize(sub_vecs(self.pos, pt))
 
     def render_arrow(self):
-
         arrow_pos_mag = self.colr + np.sin(self.arrow_waver_angle) * Spaceship.WAVER_SCALE
         self.arrow_waver_angle = (self.arrow_waver_angle + Spaceship.WAVER_SPEED) % (2*np.pi)
 
@@ -234,6 +233,16 @@ class Spaceship(ColObj):
         self.arrow_obj.drawObj()
 
         glPopMatrix()
+
+    def calc_fuel_loss(self):
+        if self.thrusting in (-1, 1): # backwards or forwards
+            self.fuel -= Spaceship.THRUST_LOSS
+        elif self.thrusting == 2: # Opposite thrust
+            self.fuel -= Spaceship.THRUST_OPP_LOSS
+
+        if self.fuel <= 0:
+            self.damage("You ran out of fuel!")
+            self.fuel = Spaceship.FUEL
 
     def render(self):
         self.applyVel()
@@ -256,6 +265,8 @@ class Spaceship(ColObj):
         self.rotate()
 
         self.applyThrust()
+
+        self.calc_fuel_loss()
 
         # Cube.draw_cube()  # eventually draw ship
         # self.draw_collision_sphere() # collision sphere

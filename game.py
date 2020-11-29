@@ -17,6 +17,7 @@ pinstalled = True
 try:
     from OpenGL.GL import *
     from OpenGL.GLU import *
+    from OpenGL.GLUT import *
 except ImportError:
     print("DEPENDENCY: 'OpenGL' NOT MET")
     pinstalled = False
@@ -42,6 +43,11 @@ import random
 
 
 # GLOBALS
+
+# WINDOW
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = 600
+
 # KEY ABSTRACTION
 ROLL_LEFT       = 'RL'
 ROLL_RIGHT      = 'RR'
@@ -102,6 +108,17 @@ U_VIEWS = {
 
 # Format: (x,y,z) relative to ship and then stay
 CURVIEW = V_BACKRIGHT
+
+
+def wait():
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == KEYDOWN:
+                return
 
 
 def handleKeyEvent(env, event):
@@ -218,10 +235,52 @@ def calc_view(env):
     U_VIEWS[CURVIEW].local_gluLookAt(ship.pos, ship.orient)
 
 
+def draw_text(position, txt, col, font_size):
+    font = pygame.font.Font(None, font_size)                # render default pygame font
+    txtSurf = font.render(txt, True, col, (0,0,0,0))        # make surface image for text
+    txtdat = pygame.image.tostring(txtSurf,"RGBA", True)    # turn that into a byte string
+    glRasterPos2d(*position)                                # set position
+    # draw the pixels with the width and height of the txtsurf
+    glDrawPixels(txtSurf.get_width(), txtSurf.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, txtdat)
+
+
+def draw_centered_text(txt,col,font_size):
+    font = pygame.font.Font(None, font_size)             # render default pygame font
+    txtSurf = font.render(txt, True, col, (0,0,0,0))     # make surface image for text
+    txtdat = pygame.image.tostring(txtSurf,"RGBA", True) # turn that into a byte string
+    position = (
+        (SCREEN_WIDTH - txtSurf.get_width()) / 2,
+        ((SCREEN_HEIGHT + txtSurf.get_height()) / 2)
+    )
+    glRasterPos2d(*position)
+    glDrawPixels(txtSurf.get_width(), txtSurf.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, txtdat)
+
+
+def draw_2d(func, *args, **kwargs):
+    glMatrixMode(GL_PROJECTION)     # change matrix to projection
+    glPushMatrix()                  # push projection matrix
+    glLoadIdentity()                # set to identity
+    glOrtho(0.0, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0, -1.0, 10.0)   # 2d ortho mode
+    glMatrixMode(GL_MODELVIEW)      # change matrix to modelview
+    glPushMatrix()                  # push it onto the stack
+    glLoadIdentity()                # set to identity
+    glDisable(GL_CULL_FACE)         # no more lighting
+    glClear(GL_DEPTH_BUFFER_BIT)    # clear screen buffer
+    glDisable(GL_LIGHTING)
+
+    func(*args, **kwargs)  # run the display func
+
+    glEnable(GL_LIGHTING)
+    glMatrixMode(GL_PROJECTION)     # change matrix mode to projection
+    glPopMatrix()                   # grab the previous one
+    glMatrixMode(GL_MODELVIEW)      # change the matrix mode to modelview
+    glPopMatrix()                   # grab the previous one
+
+
 def main():
     # Locals
     init_new_level = True
-    level_counter = 1
+    level_counter = 0
 
     ship = None
     planetd = None
@@ -230,6 +289,9 @@ def main():
 
     def initialize_level():
         nonlocal ship, planetd, asteroids, objs, level_counter, init_new_level
+
+        # increease level_counter
+        level_counter += 1
 
         # reset vars
         asteroids = []
@@ -242,7 +304,7 @@ def main():
         objs = []
 
         # Game generation tweaks
-        noise_max = 20
+        noise_max = 30
         # planet
         # Generate random radius and spherical coordinates for planet and then translate
         # into cartesian coordinates
@@ -292,20 +354,22 @@ def main():
             objs.append(tmpa)
 
         init_new_level = False
-        level_counter += 1
 
-    def lose_condition():
+    def lose_condition(dmgtxt=""):
         nonlocal level_counter, init_new_level
-        ## TODO: Display lose message and implement 'play again?' logic
-        print("YOU LOSE")
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        draw_2d(draw_centered_text,f"Drats! {dmgtxt} Press any key to continue!", (255,0,0), 40)
+        pygame.display.flip()
+        wait()
         level_counter = 1
         init_new_level = True
 
     def level_win_condition():
         nonlocal level_counter, init_new_level
-        ## TODO: Display level win logic and implement continue feature
-        print(f"NEXT LEVEL: {level_counter + 1}")
-        level_counter += 1
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        draw_2d(draw_centered_text,f"Great Job! Press any key to continue", (0,255,0), 40)
+        pygame.display.flip()
+        wait()
         init_new_level = True
 
     def check_collisions():
@@ -315,39 +379,103 @@ def main():
             s_vel = ship.getVelMag()
             s_up = ship.getUpVec()
             s_pos = ship.pos
-            if planetd.is_good_landing(s_pos, s_vel, s_up):
+            is_good_landing, dmgtxt = planetd.is_good_landing(s_pos, s_vel, s_up)
+            if is_good_landing:
                 level_win_condition()
             else:
-                lose_condition()
-                # TODO: damage the ship and then eject them away from the planet from Planet.landingplanept
+                ship.damage(dmgtxt)
+
+                ship.pos = planetd.ejectpoint()
+                ship.vel = (0,0,0)
+                ship.force = (0,0,0)
+                ship.rpy = [0,0,0]
 
         tmp_asteroids = [] # create temp asteroids list
         while asteroids:
             ast = asteroids.pop()   # get each asteroid
             if ship.is_colliding(ast): # if the ship is colliding with an asteroid...
-                ship.damage()   # damage the ship and don't add the asteroid back
-                print(ship.health)
+                ship.damage("You hit an asteroid one too many times!")   # damage the ship and don't add the asteroid back
             else:   # if the ship is not colliding...
                 tmp_asteroids.append(ast)   # add the asteroid back
         while tmp_asteroids:    # add all of the asteroids back
             asteroids.append(tmp_asteroids.pop())
 
+    def draw_hud():
+        nonlocal ship, planetd, level_counter
+        val_scale = 10
+
+        col_red = (255, 0, 0, 255)
+        col_green = (0, 255, 0, 255)
+        col_white = (255, 255, 255, 255)
+
+        # DRAW HUD
+        # Info panel
+        # Health: X X X
+        # Fuel: [-----------]
+        # Velocity: 1.1234
+        # Roll, Pitch, Yaw: (1.23, 1.23, 1.23)
+        health = f"Health:{'  X'*ship.health}"
+        health_color = ( # red if the health is one, green otherwise
+            255 * (ship.health == 1),
+            255 * (ship.health > 1),
+            0
+        )
+        fuel = "Fuel: "
+        fuel_color = (  # red if ship is thrusting, green otherwise
+            255 * bool(ship.thrusting),
+            255 * (not ship.thrusting),
+            0
+        )
+        s_vel = ship.getVelMag()
+        vel = f"Velocity: {s_vel * val_scale:.4f}"
+        vel_color = (   # red if velocity is over Planet.MAX_ACCEPTABLE_LANDING_VELOCITY, green otherwise
+            255 * (s_vel > Planet.MAX_ACCEPTABLE_LANDING_VELOCITY),
+            255 * (s_vel <= Planet.MAX_ACCEPTABLE_LANDING_VELOCITY),
+            0
+        )
+        ypr = f"Roll, Pitch, Yaw: ({ship.rpy[0]*val_scale:.2f}, {ship.rpy[1]*val_scale:.2f}, {ship.rpy[2]*val_scale:.2f})"
+
+        to_ship_vec = sub_vecs(planetd.pos, ship.pos)  # get the vector from the planet to the ship
+        angle = np.arccos(dot_vecs(ship.getUpVec(), to_ship_vec) / (mag(ship.getUpVec()) * mag(to_ship_vec)))
+
+        landing_angle = f"Landing Angle: {angle*180/np.pi:.2f}"
+        landing_color = ( # red if angle > Planet.LANDING_ANGLE_TOLERANCE
+            255 * (angle > Planet.LANDING_ANGLE_TOLERANCE),
+            255 * (angle <= Planet.LANDING_ANGLE_TOLERANCE),
+            0
+        )
+        txtx = 10
+        txty = 20
+        draw_text((txtx, txty), health, health_color, 22);  txty += 20
+        draw_text((txtx, txty), fuel, fuel_color, 22);      txty += 20
+        fuel_left = max(0, int(100*ship.fuel / Spaceship.FUEL))
+        glBegin(GL_QUADS)
+        glColor3f(*fuel_color)
+        glVertex2f(txtx+50, txty-40)
+        glVertex2f(txtx+50+fuel_left, txty-40)
+        glVertex2f(txtx+50+fuel_left, txty-20)
+        glVertex2f(txtx+50,txty-20)
+        glEnd()
+        # draw_rect((txtx + 50, txty - 20), max(0,int(100 * ship.fuel / Spaceship.FUEL)), 20, coltup_to_bytes(fuel_color))
+        draw_text((txtx, txty), vel, vel_color, 22);        txty += 20
+        draw_text((txtx, txty), ypr, col_green, 22);        txty += 20
+        draw_text((txtx, txty), landing_angle, landing_color, 22);          txty += 20
+        draw_text((txtx, txty), f"Level: {level_counter}", col_green, 22);  txty += 20
+
     pygame.init()
-    display = (1000, 700)
+    display = (SCREEN_WIDTH, SCREEN_HEIGHT)
     pygame.display.set_mode(display, DOUBLEBUF | OPENGL | RESIZABLE)
 
     init_lighting()
 
     glEnable(GL_DEPTH_TEST)
     glDepthFunc(GL_LESS)
+    glEnable(GL_BLEND)
 
     glMatrixMode(GL_PROJECTION)
     gluPerspective(45, (display[0] / display[1]), 0.1, 500.0)
 
     glMatrixMode(GL_MODELVIEW)
-    # glTranslatef(0.0, 0.0, -40.0)
-    # glRotatef(90, 0, 1, 0)
-    # glRotatef(10, 0, 0, 1)
 
     # pygame clock
     clock = pygame.time.Clock()
@@ -405,6 +533,9 @@ def main():
             "ship": ship
         }
         calc_view(env)
+
+        ## HUD ##
+        draw_2d(draw_hud)
 
         pygame.display.flip()   # flip buffers
         clock.tick()    # tick the clock
