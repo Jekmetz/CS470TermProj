@@ -26,7 +26,7 @@ try:
     import pygame
     from pygame.locals import *
 except ImportError:
-    print("DEPENDENCY: 'OpenGL' NOT MET")
+    print("DEPENDENCY: 'pygame' NOT MET")
     pinstalled = False
 
 try:
@@ -294,11 +294,13 @@ def main():
     objs = []
 
     def initialize_level():
+        global CURVIEW
         nonlocal ship, planetd, asteroids, objs, level_counter, init_new_level
 
         # increease level_counter
         level_counter += 1
 
+        CURVIEW = V_BACKRIGHT
         # reset vars
         asteroids = []
 
@@ -310,12 +312,13 @@ def main():
         objs = []
 
         # Game generation tweaks
-        noise_max = 30
+        noise_max = 40
         # planet
         # Generate random radius and spherical coordinates for planet and then translate
         # into cartesian coordinates
         pradius = random.uniform(16,25)
-        prho = random.uniform(200, 200 + level_counter * 100)
+        # at least an extra 50 units each level
+        prho = random.uniform(200 + level_counter * 50, 200 + level_counter * 75)
         ptheta = random.random() * 2 * np.pi
         pphi = random.random() * np.pi
         ppos = spherical_to_cartesian(prho,ptheta,pphi)
@@ -323,8 +326,11 @@ def main():
         # planet landing plane point
         # grab point inside sphere and then translate to cartesian coordinates. Point moves further out as
         # level increases
-        level_adjust = min((level_counter-1) / 50, .3)
-        lrho = pradius * random.uniform(.45 + level_adjust, .65 + level_adjust)
+        # logistic values look good on Desmos
+        lrho = pradius * random.uniform(
+            logistic_approaches(level_counter,     minval=.45, maxval=.95, growth=.91, center=3.6),
+            logistic_approaches(level_counter + 1, minval=.45, maxval=.95, growth=.91, center=3.6)
+        )
         ltheta = random.random() * 2 * np.pi
         lphi = random.random() * np.pi
         lplanepoint = spherical_to_cartesian(lrho,ltheta,lphi)
@@ -334,7 +340,8 @@ def main():
         # print(lphi * 180/np.pi)
 
         # asteroids
-        nasteroids = random.randrange(4, 4 + level_counter * 2)
+        # at least two more asteoroids each level
+        nasteroids = random.randrange(4 + level_counter*2, 6 + level_counter * 2)
 
         ship = Spaceship(lose_cond=lose_condition)
         if planetd:

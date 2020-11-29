@@ -126,8 +126,8 @@ class Planet(ColObj):
                 self.obj.cols[i] = "landable"   # color it with the landable color
 
     def ejectpoint(self):
-        # Grab the landing plane vector, make it of length radius + 15, and then add it to the position
-        return add_vecs(self.pos,scalar_mult(self.radius + 15,normalize(self.landingplanept)))
+        # Grab the landing plane vector, make it of length radius + 20, and then add it to the position
+        return add_vecs(self.pos,scalar_mult(self.radius + 20,normalize(self.landingplanept)))
 
     def is_good_landing(self, s_pos, s_vel, s_up):
         to_ship_vec = sub_vecs(self.pos, s_pos) # get the vector from the planet to the ship

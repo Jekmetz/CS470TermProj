@@ -61,9 +61,8 @@ def is_colliding(p1, r1, p2, r2):
 
 # takes a var and turns it into a value between 1 and maxval which asymptonically approaches maxval
 # dependent on growth_rate and center
-def logistic_approaches(var, maxval, growth_rate, center):
-    return maxval / (1 + np.e**(-growth_rate * (var - center)))
-
+def logistic_approaches(var, minval, maxval, growth, center):
+    return minval + (maxval-minval) / (1 + np.e ** (-growth * (var - center)))
 
 
 def spherical_to_cartesian(rho, theta, phi):
