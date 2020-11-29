@@ -35,6 +35,12 @@ except ImportError:
     print("DEPENDENCY: 'numpy' NOT MET")
     pinstalled = False
 
+try:
+    from PIL.Image import open
+except ImportError:
+    print("DEPENDENCY: 'PIL' NOT MET")
+    pinistalled = False
+
 if not pinstalled:
     print("Please install the dependenc(y|ies) above using pip or a similar service. Thank you!")
     exit()
@@ -349,7 +355,9 @@ def main():
             )
             apos = map(lambda a: a*percent, ppos) # get position from percentage along vector to planet
             apos = tuple(map(sum,zip(apos, noise))) # add noise
-            tmpa = Asteroid(pos=apos)
+            # random rotation in space
+            aaa = (random.uniform(-1,1),random.uniform(-1,1),random.uniform(-1,1),random.uniform(0,2*np.pi))
+            tmpa = Asteroid(pos=apos, aa=aaa)
             asteroids.append(tmpa)
             objs.append(tmpa)
 
@@ -456,7 +464,6 @@ def main():
         glVertex2f(txtx+50+fuel_left, txty-20)
         glVertex2f(txtx+50,txty-20)
         glEnd()
-        # draw_rect((txtx + 50, txty - 20), max(0,int(100 * ship.fuel / Spaceship.FUEL)), 20, coltup_to_bytes(fuel_color))
         draw_text((txtx, txty), vel, vel_color, 22);        txty += 20
         draw_text((txtx, txty), ypr, col_green, 22);        txty += 20
         draw_text((txtx, txty), landing_angle, landing_color, 22);          txty += 20

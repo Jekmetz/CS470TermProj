@@ -51,8 +51,8 @@ def is_colliding(p1, r1, p2, r2):
     return dist(p1, p2) < (r1 + r2)
 
 
-def logistic_approaches(var, maxval, scale):
-    return maxval + scale / var
+def logistic_approaches(var, maxval, growth_rate, center):
+    return maxval / (1 + np.e**(-growth_rate * (var - center)))
 
 
 def spherical_to_cartesian(rho, theta, phi):
