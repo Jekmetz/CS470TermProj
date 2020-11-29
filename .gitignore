@@ -1,2 +1,8 @@
 __pycache__/
 blender/
+
+# Vim files
+*.*~
+
+# Latex nonsense
+latex/

@@ -369,7 +369,7 @@ def main():
         draw_2d(draw_centered_text,f"Drats! {dmgtxt} Press any key to continue!", (255,0,0), 40)
         pygame.display.flip()
         wait()
-        level_counter = 1
+        level_counter = 0
         init_new_level = True
 
     def level_win_condition():
@@ -411,11 +411,8 @@ def main():
     def draw_hud():
         nonlocal ship, planetd, level_counter
         val_scale = 10
-
-        col_red = (255, 0, 0, 255)
         col_green = (0, 255, 0, 255)
-        col_white = (255, 255, 255, 255)
-
+        
         # DRAW HUD
         # Info panel
         # Health: X X X

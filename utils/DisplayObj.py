@@ -9,7 +9,7 @@ class DisplayObj:
         self.verts = verts  # vertex list
         self.norms = norms  # vertex norm list
         self.edges = edges  # edge list
-        self.surfs = surfs  # surface, surface norm
+        self.surfs = surfs  # surface, surface uv, surface norm
         self.uvs = uvs      # uv map points
         self.cols = cols    # color list, parallel with surface
         self.name = nam     # name
@@ -165,20 +165,19 @@ class DisplayObj:
                     glMaterialfv(GL_FRONT, GL_SPECULAR, mat.spec)
                     glMaterialfv(GL_FRONT, GL_EMISSION, mat.emm)
 
-                surface = vertex_uv_norm[0]
-                uv = vertex_uv_norm[1]
-                norm = vertex_uv_norm[2]
-                if len(surface) == 3:
+                surface = vertex_uv_norm[0] # surface verticies
+                uv = vertex_uv_norm[1]      # uv points
+                norm = vertex_uv_norm[2]    # surface norm
+                if len(surface) == 3:   # if there are 3 verticies...
                     glBegin(GL_TRIANGLES)
-                elif len(surface) == 4:
+                elif len(surface) == 4: # if there are 4 verticies...
                     glBegin(GL_QUADS)
-                else:
+                else:                   # if there are more than 5 verticies...
                     glBegin(GL_POLYGON)
                 glNormal3fv(self.norms[norm])
                 for vertex, uv in zip(surface,uv):
                     if self.usetex:
                         glTexCoord2f(*self.uvs[uv])
-                        print(uv)
                     glVertex3fv(self.verts[vertex])
                 glEnd()
             glScalef(1.0,1.0,1.0)
