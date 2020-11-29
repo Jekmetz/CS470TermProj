@@ -224,6 +224,18 @@ def init_lighting():
 
     glEnable(GL_LIGHT0)
 
+    light1_ambient = (1,1,1,1)      # white light
+    light1_diffuse = (1,1,1,1)    # white light
+    light1_specular = (1,1,1,1)
+    light1_cutoff_angle = 60
+
+    glLightfv(GL_LIGHT1, GL_AMBIENT, light1_ambient)
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse)
+    glLightfv(GL_LIGHT1, GL_SPECULAR, light1_specular)
+
+    glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, light1_cutoff_angle)
+    # glEnable(GL_LIGHT1)
+
 
 def calc_ambient():
     glPushMatrix()

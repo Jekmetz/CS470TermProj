@@ -244,6 +244,14 @@ class Spaceship(ColObj):
             self.damage("You ran out of fuel!")
             self.fuel = Spaceship.FUEL
 
+    def render_lights(self):
+        # in testing
+        glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, self.get_spot_direction())
+        glLightfv(GL_LIGHT1, GL_POSITION, add_vecs(self.pos,(4.5, -0.5, 0)))
+
+    def get_spot_direction(self):
+        return qv_mult(self.orient, (1,1,0))
+
     def render(self):
         self.applyVel()
 
@@ -258,6 +266,8 @@ class Spaceship(ColObj):
 
         glTranslatef(*self.pos)
         glRotatef(a * 180 / np.pi, *v)
+
+        # self.render_lights()
 
         # do ypr calculations
 
