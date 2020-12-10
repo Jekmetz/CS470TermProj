@@ -468,6 +468,7 @@ def main():
             255 * (angle <= Planet.LANDING_ANGLE_TOLERANCE),
             0
         )
+        dist_to_p = f"Distance to Planet: {mag(sub_vecs(ship.pos,planetd.pos))-planetd.radius:.2f}"
         txtx = 10
         txty = 20
         draw_text((txtx, txty), health, health_color, 22);  txty += 20
@@ -484,6 +485,7 @@ def main():
         draw_text((txtx, txty), ypr, col_green, 22);        txty += 20
         draw_text((txtx, txty), landing_angle, landing_color, 22);          txty += 20
         draw_text((txtx, txty), f"Level: {level_counter}", col_green, 22);  txty += 20
+        draw_text((txtx, txty), dist_to_p, col_green, 22); txty += 20
 
     pygame.init()
     display = (SCREEN_WIDTH, SCREEN_HEIGHT)
